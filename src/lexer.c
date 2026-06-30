@@ -1,3 +1,8 @@
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
 #include "lexer.h"
 
 Lexer* lexer_create(const char* source) {
@@ -21,11 +26,27 @@ void lexer_free(Lexer* lexer) {
     free(lexer);
 }
 
+void lexer_add_token(Lexer* lexer, TokenType type, const char* value, int len, int line, int col) {
+    if (lexer->token_count >= lexer->token_capacity) {
+        lexer->token_capacity *= 2;
+        lexer->tokens = (Token*) realloc(lexer->tokens, sizeof(Token) * lexer->token_capacity);
+    }
+    Token* t = &lexer->tokens[lexer->token_count++];
+    
+    t->type = type;
+    t->col = col;
+    t->line = line;
+
+    t->value = (char*) malloc(len + 1);
+    strncpy(t->value, value, len);
+    t->value[len] = '\0';
+}
+
 char peek(Lexer* lexer) {
     return lexer->source[lexer->pos];
 }
 
-char next(Lexer* lexer) {
+char peek_next(Lexer* lexer) {
     if (lexer->source[lexer->pos] == '\0') return '\0';
     return lexer->source[lexer->pos + 1];
 }
@@ -79,6 +100,61 @@ const char* token_type_to_string(TokenType type) {
 
 
 Token* lexer_tokenize(Lexer* lexer) {
-    return nullptr;
+    while (peek(lexer) != '\0') {
+        char c = peek(lexer);
+
+        if (isspace(c)) {
+            advance(lexer);
+            continue;
+        }
+
+        if (c == '/' && peek_next(lexer) == '/') {
+            advance(lexer);
+            advance(lexer);
+            while (peek(lexer) != '\0' && peek(lexer) != '\n') {
+                advance(lexer);
+            }
+            continue;
+        }
+
+        int start_line = lexer->line;
+        int start_col = lexer->col;
+        int star_pos = lexer->pos;
+        
+        if (c == '"') {
+
+        }
+
+        if (isdigit(c)) {
+
+        }
+
+        if (isalpha(c) || c == '_') {
+
+        }
+
+        if (c == '&' && peek_next(lexer) == '&') {
+            advance(lexer);
+            advance(lexer);
+            lexer_add_token(lexer, TOKEN_AND, "&&", 2, start_line, start_col);
+            continue;
+        }
+
+        advance(lexer);
+        TokenType one_char_type = TOKEN_EOF;
+        switch (c) {
+            case  '+': one_char_type = TOKEN_PLUS; break;
+            case  '-': one_char_type = TOKEN_MINUS; break;
+            
+            default:
+                // show error
+                exit(1);
+        }
+        char val_str[2] = {c, '\0'};
+        lexer_add_token(lexer, one_char_type, val_str, 1, start_line, start_col);
+    }
+    
+    lexer_add_token(lexer, TOKEN_EOF, "", 0, lexer->line, lexer->col);
+    return lexer->tokens;
 }
 
