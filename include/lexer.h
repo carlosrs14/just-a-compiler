@@ -25,7 +25,7 @@ typedef enum {
 
     TOKEN_EQ,
     TOKEN_NEQ,
-    TOEKN_LT,
+    TOKEN_LT,
     TOKEN_GT,
     TOKEN_LE,
     TOKEN_GE,
@@ -58,4 +58,5 @@ typedef struct {
 
 Lexer* lexer_create(const char* source);
 void lexer_free(Lexer* lexer);
+const char* token_type_to_string(TokenType type);
 Token* lexer_tokenize(Lexer* lexer);
