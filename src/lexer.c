@@ -98,7 +98,6 @@ const char* token_type_to_string(TokenType type) {
     }
 }
 
-
 Token* lexer_tokenize(Lexer* lexer) {
     while (peek(lexer) != '\0') {
         char c = peek(lexer);
@@ -119,18 +118,52 @@ Token* lexer_tokenize(Lexer* lexer) {
 
         int start_line = lexer->line;
         int start_col = lexer->col;
-        int star_pos = lexer->pos;
+        int start_pos = lexer->pos;
         
         if (c == '"') {
-
+            advance(lexer);
+            while (peek(lexer) != '\0' && peek(lexer) != '"') {
+                if (peek(lexer) == '\\') {
+                    advance(lexer);
+                }
+                advance(lexer);
+            }
+            
+            if (peek(lexer) == '\0') {
+                // show error
+                exit(1);
+            }
+            int len = lexer->pos - start_pos;
+            lexer_add_token(lexer, TOKEN_STRING_LIT, &lexer->source[start_pos], len, start_line, start_col);
+            continue;
         }
 
         if (isdigit(c)) {
-
+            while (isdigit(peek(lexer))) {
+                advance(lexer);
+            }
+            int len = lexer->pos - start_pos;
+            lexer_add_token(lexer, TOKEN_INT_LIT, &lexer->source[start_pos], len, start_line, start_col);
+            continue;
         }
 
         if (isalpha(c) || c == '_') {
+            while (isalnum(peek(lexer)) || peek(lexer) == '_') {
+                advance(lexer);
+            }
+            int len = lexer->pos - start_pos;
+            const char* ident = &lexer->source[start_pos];
+            
+            TokenType type = TOKEN_ID;
+            if (strncmp(ident, "int", len) == 0 && len == 3) type = TOKEN_INT;
+            else if (strncmp(ident, "void", len) == 0 && len == 4) type = TOKEN_VOID;
+            else if (strncmp(ident, "if", len) == 0 && len == 2) type = TOKEN_IF;
+            else if (strncmp(ident, "else", len) == 0 && len == 4) type = TOKEN_ELSE;
+            else if (strncmp(ident, "while", len) == 0 && len == 5) type = TOKEN_WHILE;
+            else if (strncmp(ident, "return", len) == 0 && len == 6) type = TOKEN_RETURN;
 
+            lexer_add_token(lexer, type, ident, len, start_line, start_col);
+            continue;
         }
 
         if (c == '&' && peek_next(lexer) == '&') {
@@ -139,12 +172,54 @@ Token* lexer_tokenize(Lexer* lexer) {
             lexer_add_token(lexer, TOKEN_AND, "&&", 2, start_line, start_col);
             continue;
         }
+        if (c == '|' && peek_next(lexer) == '|') {
+            advance(lexer);
+            advance(lexer);
+            lexer_add_token(lexer, TOKEN_OR, "||", 2, start_line, start_col);
+            continue;
+        }
+        if (c == '=' && peek_next(lexer) == '=') {
+            advance(lexer);
+            advance(lexer);
+            lexer_add_token(lexer, TOKEN_EQ, "==", 2, start_line, start_col);
+            continue;
+        }
+        if (c == '!' && peek_next(lexer) == '=') {
+            advance(lexer);
+            advance(lexer);
+            lexer_add_token(lexer, TOKEN_NEQ, "!=", 2, start_line, start_col);
+            continue;
+        }
+        if (c == '<' && peek_next(lexer) == '=') {
+            advance(lexer);
+            advance(lexer);
+            lexer_add_token(lexer, TOKEN_LE, "<=", 2, start_line, start_col);
+            continue;
+        }
+        if (c == '>' && peek_next(lexer) == '=') {
+            advance(lexer);
+            advance(lexer);
+            lexer_add_token(lexer, TOKEN_GE, ">=", 2, start_line, start_col);
+            continue;
+        }
 
         advance(lexer);
         TokenType one_char_type = TOKEN_EOF;
         switch (c) {
             case  '+': one_char_type = TOKEN_PLUS; break;
             case  '-': one_char_type = TOKEN_MINUS; break;
+            case '*': one_char_type = TOKEN_MUL; break;
+            case '/': one_char_type = TOKEN_DIV; break;
+            case '=': one_char_type = TOKEN_ASSIGN; break;
+            case '!': one_char_type = TOKEN_NOT; break;
+            case '<': one_char_type = TOKEN_LT; break;
+            case '>': one_char_type = TOKEN_GT; break;
+            case ',': one_char_type = TOKEN_COMMA; break;
+            case ';': one_char_type = TOKEN_SEMI; break;
+            case '(': one_char_type = TOKEN_LPAR; break;
+            case ')': one_char_type = TOKEN_RPAR; break;
+            case '{': one_char_type = TOKEN_LBRA; break;
+            case '}': one_char_type = TOKEN_RBRA; break;
             
             default:
                 // show error
